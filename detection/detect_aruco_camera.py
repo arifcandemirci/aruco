@@ -7,7 +7,7 @@ arucoParams = cv2.aruco.DetectorParameters()
 arucoDetector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
 
 # ---------- CAMERA ----------
-cap = cv2.VideoCapture(cv2.CAP_V4L2)
+cap = cv2.VideoCapture(2)
 
 # FPS optimizasyonu için
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
