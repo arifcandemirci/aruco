@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from picamera2 import Picamera2
 from utils import aruco_display
+import time
 
 #Calibration loading
 camera_matrix = np.load("../calibration/calibration_matrix.npy")
@@ -12,6 +13,11 @@ MARKER_LENGTH = 0.019
 arucoDict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
 arucoParams = cv2.aruco.DetectorParameters()
 arucoDetector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
+
+fps = 0.0
+fps_frame_count = 0
+fps_time = time.perf_counter()
+
 
 #Starting camera
 picam2 = Picamera2()
