@@ -3,6 +3,7 @@ import numpy as np
 from picamera2 import Picamera2
 from utils import aruco_display
 import time
+import math
 
 #Calibration loading
 camera_matrix = np.load("../calibration/calibration_matrix.npy")
@@ -62,7 +63,9 @@ try:
                         0.009  # eksen uzunluğu
                     )
                     t = tvecs[i].ravel()
-                    print(f"ID {ids[i][0]} | x={t[0]:.3f} m  y={t[1]:.3f} m  z={t[2]:.3f} m")
+                    rmat, _ = cv2.Rodrigues(rvecs)
+                    gamma_deg = math.degrees(math.atan2(rmat[1,0], rmat[0,0]))
+                    print(f"ID {ids[i][0]} | x={t[0]:.3f} m  y={t[1]:.3f} m  z={t[2]:.3f} m Gama:{gamma_deg:.1f}")
             else:
                 # Marker yoksa program kapanmasın, pencere açık kalmalı
                 print("[INFO] No markers detected")
@@ -77,10 +80,10 @@ try:
                 fps_time = now
             cv2.putText(frame, f"FPS:{fps:.1f}", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
 
-            cv2.imshow("ArUco Pose (Camera)", output, frame)
+            cv2.imshow("ArUco Pose (Camera)", output)
     
             # SADECE 'frame' değişkenini gösteriyoruz
-            #cv2.imshow("Hassas Hizalama", frame)
+            cv2.imshow("Hassas Hizalama", frame)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
