@@ -24,7 +24,7 @@ picam2.start()
 
 cv2.namedWindow("ArUco Pose (Camera)", cv2.WINDOW_NORMAL)
 cv2.resizeWindow("ArUco Pose (Camera)", 800, 600)
-a
+
 print("[INFO] Live ArUco detection + pose started")
 print("[INFO] Press 'q' to quit")
 
