@@ -1,50 +1,45 @@
-import cv2
 import os
 import time
+import cv2
+from picamera2 import Picamera2
 
-SAVE_DIR = "calibration_images"
-TOTAL_IMAGES = 24
-INTERVAL_SEC = 3
+# Kayıt klasörü
+IMAGE_DIR = "calibration_images"
+os.makedirs(IMAGE_DIR, exist_ok=True)
 
-if not os.path.exists(SAVE_DIR):
-    os.makedirs(SAVE_DIR)
+# Kamera başlat
+picam2 = Picamera2()
 
-cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+# Düşük gecikme ve stabil preview için
+config = picam2.create_preview_configuration(
+    main={"size": (1280, 720), "format": "RGB888"}
+)
+picam2.configure(config)
+picam2.start()
 
-# YUYV için EN OPTİMUM
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
-cap.set(cv2.CAP_PROP_FPS, 30)
+time.sleep(0.5)
 
-if not cap.isOpened():
-    print("Kamera açılamadı")
-    exit()
+print("📸 Image capture started (IMX219 / Picamera2)")
+print("COntrols:  s = save imag   q = quit")
 
-print("📸 Foto çekimi başladı (YUYV optimize)")
+idx = 0
 
-count = 0
+while True:
+    frame_rgb = picam2.capture_array()              # RGB
+    frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
 
-while count < TOTAL_IMAGES:
-    start = time.time()
+    cv2.imshow("Capture (IMX219)", frame_bgr)
+    key = cv2.waitKey(1) & 0xFF
 
-    # buffer temizle
-    for _ in range(5):
-        cap.read()
+    if key == ord('s'):
+        path = os.path.join(IMAGE_DIR, f"img_{idx:04d}.jpg")
+        cv2.imwrite(path, frame_bgr)
+        print(f"✅ Saved: {path}")
+        idx += 1
 
-    ret, frame = cap.read()
-    if not ret:
-        print("Frame alınamadı")
+    elif key == ord('q'):
         break
 
-    filename = os.path.join(SAVE_DIR, f"img_{count+1:02d}.jpg")
-    cv2.imwrite(filename, frame)
-    print(f"Kaydedildi: {filename}")
-
-    count += 1
-
-    # tam 3 sn bekle
-    while time.time() - start < INTERVAL_SEC:
-        time.sleep(0.01)
-
-cap.release()
-print("🎯 Tamamlandı")
+picam2.stop()
+cv2.destroyAllWindows()
+print("🎯 Capture Finished")
