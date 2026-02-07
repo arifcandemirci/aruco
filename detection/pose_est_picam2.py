@@ -27,6 +27,7 @@ config = picam2.create_preview_configuration(
     main={"size": (1280, 720), "format": "YUV420"}
 )
 picam2.configure(config)
+picam2.set_controls({"FrameRate": 40})
 picam2.start()
 
 cv2.namedWindow("ArUco Pose (Camera)", cv2.WINDOW_NORMAL)
