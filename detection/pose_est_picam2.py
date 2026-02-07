@@ -27,7 +27,7 @@ config = picam2.create_preview_configuration(
     main={"size": (320, 240), "format": "RGB888"}
 )
 picam2.configure(config)
-#picam2.set_controls({"FrameDurationLimits": (16666, 16666)})
+picam2.set_controls({"FrameRate": (90)})
 picam2.start()
 
 cv2.namedWindow("ArUco Pose (Camera)", cv2.WINDOW_NORMAL)
