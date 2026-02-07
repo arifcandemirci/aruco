@@ -18,7 +18,7 @@ arucoDetector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
 fps = 0.0
 fps_frame_count = 0
 fps_time = time.perf_counter()
-
+last_log = time.perf_counter()
 
 #Starting camera
 picam2 = Picamera2()
@@ -27,7 +27,7 @@ config = picam2.create_preview_configuration(
     main={"size": (320, 240), "format": "RGB888"}
 )
 picam2.configure(config)
-picam2.set_controls({"FrameRate": (90)})
+picam2.set_controls({"FrameDurationLimits": (11111, 11111)}) # 1/90s = 11111 µs
 picam2.start()
 
 cv2.namedWindow("ArUco Pose (Camera)", cv2.WINDOW_NORMAL)
@@ -71,8 +71,9 @@ try:
                     print(f"ID {ids[i][0]} | x={t[0]:.3f} m  y={t[1]:.3f} m  z={t[2]:.3f} m Yaw:{yaw_deg:.1f}")
             else:
                 # Marker yoksa program kapanmasın, pencere açık kalmalı
-                print("[INFO] No markers detected")
-
+                if time.perf_counter() - last_log > 1.0:
+                    print("[INFO] No markers detected")
+                    last_log = time.perf_counter()
 
             fps_frame_count += 1
             now = time.perf_counter()
