@@ -11,7 +11,7 @@ dist_coeffs = np.load("../calibration/distortion_coefficients.npy")
 
 #Aruco settings
 MARKER_LENGTH = 0.019
-arucoDict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
+arucoDict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_7X7_250)
 arucoParams = cv2.aruco.DetectorParameters()
 arucoDetector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
 
