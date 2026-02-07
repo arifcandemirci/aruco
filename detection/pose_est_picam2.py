@@ -24,7 +24,7 @@ fps_time = time.perf_counter()
 picam2 = Picamera2()
 
 config = picam2.create_preview_configuration(
-    main={"size": (1280, 720), "format": "RGB888"}
+    main={"size": (320, 240), "format": "RGB888"}
 )
 picam2.configure(config)
 picam2.set_controls({"FrameDurationLimits": (16666, 16666)})
