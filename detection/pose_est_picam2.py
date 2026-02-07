@@ -24,7 +24,7 @@ last_log = time.perf_counter()
 picam2 = Picamera2()
 
 config = picam2.create_preview_configuration(
-    main={"size": (320, 240), "format": "RGB888"}
+    main={"size": (320, 240), "format": "YUV420"}
 )
 picam2.configure(config)
 picam2.set_controls({"FrameDurationLimits": (16666, 16666)}) # 1/60s = 16666 µs
@@ -38,9 +38,9 @@ print("[INFO] Press 'q' to quit")
 
 try:
     while True:
-            frame_rgb = picam2.capture_array()
+            frame_yuv = picam2.capture_array()
 
-            frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+            frame = cv2.cvtColor(frame_yuv, cv2.COLOR_YUV2GRAY_I420)
 
             corners, ids, rejected = arucoDetector.detectMarkers(frame)
 
