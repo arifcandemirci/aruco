@@ -83,6 +83,16 @@ while True:
     cv2.putText(frame, f"FPS:{fps:.1f}", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
 
     # SADECE 'frame' değişkenini gösteriyoruz
+    cv2.imshow("Hassas Hizalama", frame) += 1
+    now = time.perf_counter()
+    elapsed = now - fps_time
+    if elapsed >= 0.5:
+        fps = fps_frame_count / elapsed
+        fps_frame_count = 0
+        fps_time = now
+    cv2.putText(frame, f"FPS:{fps:.1f}", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+
+    # SADECE 'frame' değişkenini gösteriyoruz
     cv2.imshow("Hassas Hizalama", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):

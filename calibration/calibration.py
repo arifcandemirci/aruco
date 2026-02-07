@@ -107,3 +107,4 @@ if len(all_charuco_ids) > 10:
 else:
     print(f"\n[ERROR] Not enough valid frames for calibration (valid frames: {len(all_charuco_ids)}).")
     print("[HINT] Capture more images with good lighting and different angles/distances.")
+s
