@@ -31,7 +31,7 @@ picam2.set_controls({"FrameRate": (90)})
 picam2.start()
 
 cv2.namedWindow("ArUco Pose (Camera)", cv2.WINDOW_NORMAL)
-cv2.resizeWindow("ArUco Pose (Camera)", 800, 600)
+cv2.resizeWindow("ArUco Pose (Camera)", 320, 240)
 
 print("[INFO] Live ArUco detection + pose started")
 print("[INFO] Press 'q' to quit")
