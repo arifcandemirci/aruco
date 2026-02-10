@@ -14,7 +14,7 @@ while True:
     data, bbox, _ = detector.detectAndDecode(img)
 
     if bbox is not None:
-        for i in range(len(bbox)):
+        for i in range(len(bbox[0])):
             cv2.line(img, 
                      (int(bbox[0][i][0]), int(bbox[0][i][1])),  #x1,y1
                      (int(bbox[0][(i+1) % 4][0]), int(bbox[0][(i+1) % 4][1])),  #x2,y2                   
