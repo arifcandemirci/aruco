@@ -16,8 +16,8 @@ while True:
     if bbox is not None:
         for i in range(len(bbox)):
             cv2.line(img, 
-                     tuple(bbox[i][0]),
-                     tuple(bbox[(i + 1) % len(bbox)]),
+                     (int(bbox[0],[i],[0]), int(bbox[0],[i],[1])),  #x1,y1
+                     (int(bbox[0],[i+1] % 4,[0]), int(bbox[0],[i+1] % 4,[1])),  #x2,y2                   
                      color = (255, 0, 0),
                      thickness = 2)
             
@@ -26,12 +26,14 @@ while True:
                         data,
                         (int(bbox[0][0][0]), int(bbox[0][0][1]) - 10 ),
                         cv2.FONT_HERSHEY_COMPLEX,
+                        1.0,
                         (255, 255, 120),
                         2
                         )
             
             print ("data found: ", data)
 
+    print("bbox:", bbox)
 
     cv2.imshow("QR Code Detector", img)
 
@@ -39,5 +41,4 @@ while True:
         break
 
 picam2.stop()
-cv2.destroyAllWindows()  
-    
+cv2.destroyAllWindows()
