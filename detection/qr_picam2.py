@@ -39,7 +39,7 @@ while True:
             
             print ("data found: ", data)
 
-    def show_fps():
+    def show_fps(fps, fps_frame_count, fps_time):
         fps_frame_count += 1
         now = time.perf_counter()
         elapsed = now - fps_time
