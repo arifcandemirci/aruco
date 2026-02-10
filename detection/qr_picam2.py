@@ -1,9 +1,15 @@
 import cv2
 from picamera2 import Picamera2
+import time
 
 picam2 = Picamera2()
 
 detector = cv2.QRCodeDetector()
+
+fps = 0.0
+fps_frame_count = 0
+fps_time = time.perf_counter()
+last_log = time.perf_counter()
 
 picam2.start()
 
@@ -32,6 +38,16 @@ while True:
                         )
             
             print ("data found: ", data)
+
+    fps_frame_count += 1
+    now = time.perf_counter()
+    elapsed = now - fps_time
+    if elapsed >= 0.5:
+        fps = fps_frame_count / elapsed
+        fps_frame_count = 0
+        fps_time = now
+    cv2.putText(output, f"FPS:{fps:.1f}", (10, 40),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
     cv2.imshow("QR Code Detector", img)
 
