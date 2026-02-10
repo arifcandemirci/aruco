@@ -39,16 +39,18 @@ while True:
             
             print ("data found: ", data)
 
-    fps_frame_count += 1
-    now = time.perf_counter()
-    elapsed = now - fps_time
-    if elapsed >= 0.5:
-        fps = fps_frame_count / elapsed
-        fps_frame_count = 0
-        fps_time = now
-    cv2.putText(img, f"FPS:{fps:.1f}", (10, 40),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+    def show_fps():
+        fps_frame_count += 1
+        now = time.perf_counter()
+        elapsed = now - fps_time
+        if elapsed >= 0.5:
+            fps = fps_frame_count / elapsed
+            fps_frame_count = 0
+            fps_time = now
+        cv2.putText(img, f"FPS:{fps:.1f}", (10, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
+    show_fps()
     cv2.imshow("QR Code Detector", img)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
