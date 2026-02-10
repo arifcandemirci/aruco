@@ -36,7 +36,7 @@ cv2.resizeWindow("ArUco Pose (Camera)", 320, 240)
 print("[INFO] Live ArUco detection + pose started")
 print("[INFO] Press 'q' to quit")
 
-try:
+try:    
     while True:
             frame_yuv = picam2.capture_array()
 
