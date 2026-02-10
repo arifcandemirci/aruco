@@ -9,7 +9,7 @@ picam2.start()
 
 while True:
 
-    _, img = picam2.capture_array()
+    img = picam2.capture_array()
 
     data, bbox, _ = detector.detectAndDecode(img)
 
