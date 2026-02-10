@@ -50,7 +50,7 @@ while True:
         cv2.putText(img, f"FPS:{fps:.1f}", (10, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
-    show_fps()
+    show_fps(fps_frame_count)
     cv2.imshow("QR Code Detector", img)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
