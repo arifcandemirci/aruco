@@ -46,7 +46,7 @@ while True:
         fps = fps_frame_count / elapsed
         fps_frame_count = 0
         fps_time = now
-    cv2.putText(output, f"FPS:{fps:.1f}", (10, 40),
+    cv2.putText(img, f"FPS:{fps:.1f}", (10, 40),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
     cv2.imshow("QR Code Detector", img)
