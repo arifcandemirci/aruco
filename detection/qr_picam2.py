@@ -33,8 +33,6 @@ while True:
             
             print ("data found: ", data)
 
-    print("bbox:", bbox)
-
     cv2.imshow("QR Code Detector", img)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
