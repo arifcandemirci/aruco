@@ -1,3 +1,8 @@
+"""
+Pose Estimation using Aruco markers with Raspberry Pi Camera 2
+
+"""
+
 import cv2
 import numpy as np
 from picamera2 import Picamera2
