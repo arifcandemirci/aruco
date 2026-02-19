@@ -4,9 +4,11 @@ from picamera2 import Picamera2
 from libcamera import Transform
 import time
 
-#Calibration loading
-camera_matrix = np.load("../calibration/calibration_matrix.npy")
-dist_coeffs = np.load("../calibration/distortion_coefficients.npy")
+fps = 0.0
+fps_frame_count = 0
+fps_time = time.perf_counter()
+last_log = time.perf_counter()
+
 
 detector = cv2.QRCodeDetector()
 
@@ -16,25 +18,23 @@ picam2 = Picamera2()
 
 config =picam2.create_preview_configuration(
     transform=Transform(hflip=True, vflip=True),
-    main={"size": (640, 480), "format": "YUV420"},
-    lores={"size": (320, 240), "format": "YUV420"},
-    display="lores"
-)
+    main={"size": (640, 480), "format": "RGB888"},
+    lores={"size": (320, 240), "format": "YUV420"}
+    )
+
 picam2.configure(config)
 
 picam2.set_controls({"FrameDurationLimits": (16666, 16666)}) #60 Fps
 picam2.start()
 
-print("[INFO] Live QR Code detection + pose started")
-print("[INFO] Press 'q' to quit")
-
 try:
     while True:
         frame_main = picam2.capture_array("main")
         frame_lores = picam2.capture_array("lores")
+        #grey = frame_lores[0:319, :]
         retval, decoded_info, points, _ = detector.detectAndDecodeMulti(frame_lores)
 
-        if retval is True:
+        if retval and points is not None:
             
             for i in range(len(decoded_info)):
 
@@ -57,6 +57,16 @@ try:
                             2)
                 
                 print ("Data Found: ", data)
+        fps_frame_count += 1
+        now = time.perf_counter()
+        elapsed = now - fps_time
+        if elapsed >= 0.5:
+            fps = fps_frame_count / elapsed
+            fps_frame_count = 0
+            fps_time = now
+        cv2.putText(frame_main, f"FPS:{fps:.1f}", (10, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+
 
         cv2.imshow("QR Code Detector", frame_main) 
 
