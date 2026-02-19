@@ -24,15 +24,15 @@ config =picam2.create_preview_configuration(
 
 picam2.configure(config)
 
-picam2.set_controls({"FrameDurationLimits": (16666, 16666)}) #60 Fps
+picam2.set_controls({"FrameDurationLimits": (8888, 8888)}) #60 Fps
 picam2.start()
 
 try:
     while True:
         frame_main = picam2.capture_array("main")
         frame_lores = picam2.capture_array("lores")
-        #grey = frame_lores[0:240, :]
-        retval, decoded_info, points, _ = detector.detectAndDecodeMulti(frame_lores)
+        grey = frame_lores[0:240, :]
+        retval, decoded_info, points, _ = detector.detectAndDecodeMulti(grey)
 
         if retval and points is not None:
             
