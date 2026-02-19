@@ -9,7 +9,6 @@ fps_frame_count = 0
 fps_time = time.perf_counter()
 last_log = time.perf_counter()
 
-
 detector = cv2.QRCodeDetector()
 
 #Starting Camera
@@ -18,28 +17,37 @@ picam2 = Picamera2()
 
 config =picam2.create_preview_configuration(
     transform=Transform(hflip=True, vflip=True),
-    main={"size": (640, 480), "format": "RGB888"},
-    lores={"size": (320, 240), "format": "YUV420"}
+    main={"size": (640, 480), "format": "RGB888"},  #for imshow
+    lores={"size": (320, 240), "format": "YUV420"}  #for analysis
     )
 
 picam2.configure(config)
 
-picam2.set_controls({"FrameDurationLimits": (8888, 8888)}) #60 Fps
+picam2.set_controls({"FrameDurationLimits": (8888, 8888)}) #30 Fps
 picam2.start()
 
 try:
     while True:
         frame_main = picam2.capture_array("main")
         frame_lores = picam2.capture_array("lores")
-        grey = frame_lores[0:240, :]
+
+        h = frame_lores.shape[0] * 2 // 3   # 2/3 of the data is grey data in YUV420  
+        grey = frame_lores[0:h, :]        #so 320 * 2 / 3 is equal to 240
         retval, decoded_info, points, _ = detector.detectAndDecodeMulti(grey)
 
         if retval and points is not None:
             
+            scale_x = frame_main.shape[1] / grey.shape[1]   #scaling the diffrence
+            scale_y = frame_main.shape[0] / grey.shape[0]   #between main and lores
+
             for i in range(len(decoded_info)):
 
                 data = decoded_info[i]
-                pts = points[i].astype(int)
+
+                pts = points[i].copy()          
+                pts[:, 0] *= scale_x      
+                pts[:, 1] *= scale_x 
+                pts = pts.astype(int)
 
                 for j in range(4):
                      
