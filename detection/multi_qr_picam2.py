@@ -16,24 +16,23 @@ picam2 = Picamera2()
 
 config =picam2.create_preview_configuration(
     transform=Transform(hflip=True, vflip=True),
-    main={"size": (320, 240), "format": "YUV420"}
+    main={"size": (640, 480), "format": "YUV420"},
+    lores={"size": (320, 240), "format": "YUV420"},
+    display="lores"
 )
 picam2.configure(config)
 
 picam2.set_controls({"FrameDurationLimits": (16666, 16666)}) #60 Fps
 picam2.start()
 
-#cv2.namedWindow("MultiQR Pose Est.", cv2.WINDOW_NORMAL)
-#cv2.resizeWindow("MultiQR Pose Est.", 320, 240)
-
 print("[INFO] Live QR Code detection + pose started")
 print("[INFO] Press 'q' to quit")
 
 try:
     while True:
-        frame = picam2.capture_array()
-
-        retval, decoded_info, points, _ = detector.detectAndDecodeMulti(frame)
+        frame_main = picam2.capture_array("main")
+        frame_lores = picam2.capture_array("lores")
+        retval, decoded_info, points, _ = detector.detectAndDecodeMulti(frame_lores)
 
         if retval is True:
             
@@ -44,12 +43,12 @@ try:
 
                 for j in range(4):
                      
-                     cv2.line(frame,
+                     cv2.line(frame_main,
                               tuple(pts[j]),
                               tuple(pts[(j+1) % 4]),
                               (255, 0, 0), 2)
                      
-                cv2.putText(frame,
+                cv2.putText(frame_main,
                             data,
                             tuple(pts[0]),
                             cv2.FONT_HERSHEY_COMPLEX,
@@ -59,7 +58,7 @@ try:
                 
                 print ("Data Found: ", data)
 
-        cv2.imshow("QR Code Detector", frame) 
+        cv2.imshow("QR Code Detector", frame_lores) 
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
