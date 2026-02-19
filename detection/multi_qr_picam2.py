@@ -17,7 +17,7 @@ picam2 = Picamera2()
 
 config =picam2.create_preview_configuration(
     transform=Transform(hflip=True, vflip=True),
-    main={"size": (640, 480), "format": "RGB888"},  #for imshow
+    main={"size": (320, 240), "format": "RGB888"},  #for imshow
     lores={"size": (320, 240), "format": "YUV420"}  #for analysis
     )
 
@@ -46,7 +46,7 @@ try:
 
                 pts = points[i].copy()          
                 pts[:, 0] *= scale_x      
-                pts[:, 1] *= scale_x 
+                pts[:, 1] *= scale_y 
                 pts = pts.astype(int)
 
                 for j in range(4):
