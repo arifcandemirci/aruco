@@ -56,7 +56,7 @@ try:
                 
                 print ("Data Found: ", data)
 
-        cv2.imshow("QR Code Detector", img) 
+        cv2.imshow("QR Code Detector", frame) 
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
