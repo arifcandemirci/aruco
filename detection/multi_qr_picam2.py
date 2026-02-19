@@ -31,7 +31,7 @@ try:
     while True:
         frame_main = picam2.capture_array("main")
         frame_lores = picam2.capture_array("lores")
-        #grey = frame_lores[0:319, :]
+        #grey = frame_lores[0:240, :]
         retval, decoded_info, points, _ = detector.detectAndDecodeMulti(frame_lores)
 
         if retval and points is not None:
