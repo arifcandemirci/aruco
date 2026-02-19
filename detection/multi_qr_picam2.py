@@ -10,7 +10,7 @@ dist_coeffs = np.load("../calibration/distortion_coefficients.npy")
 detector = cv2.QRCodeDetector()
 
 #Starting Camera
-picam2 = Picamera()
+picam2 = Picamera2()
 
 config =picam2.create_preview_configuration(
     main={"size": (320, 240), "format": "YUV420"}
