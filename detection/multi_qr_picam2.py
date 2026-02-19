@@ -32,7 +32,7 @@ try:
     while True:
         frame_main = picam2.capture_array("main")
         frame_lores = picam2.capture_array("lores")
-        retval, decoded_info, points, _ = detector.detectAndDecodeMulti(frame_main)
+        retval, decoded_info, points, _ = detector.detectAndDecodeMulti(frame_lores)
 
         if retval is True:
             
@@ -43,12 +43,12 @@ try:
 
                 for j in range(4):
                      
-                     cv2.line(frame_lores,
+                     cv2.line(frame_main,
                               tuple(pts[j]),
                               tuple(pts[(j+1) % 4]),
                               (255, 0, 0), 2)
                      
-                cv2.putText(frame_lores,
+                cv2.putText(frame_main,
                             data,
                             tuple(pts[0]),
                             cv2.FONT_HERSHEY_COMPLEX,
@@ -58,7 +58,7 @@ try:
                 
                 print ("Data Found: ", data)
 
-        cv2.imshow("QR Code Detector", frame_main) 
+        cv2.imshow("QR Code Detector", frame_lores) 
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
