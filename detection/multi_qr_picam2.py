@@ -13,7 +13,7 @@ detector = cv2.QRCodeDetector()
 picam2 = Picamera2()
 
 config =picam2.create_preview_configuration(
-    main={"size": (320, 240), "format": "YUV422"}
+    main={"size": (320, 240), "format": "YUV420"}
 )
 
 picam2.configure(config)
