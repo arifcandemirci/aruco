@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from picamera2 import Picamera2
+from libcamera import Transform
 import time
 
 #Calibration loading
@@ -12,11 +13,13 @@ detector = cv2.QRCodeDetector()
 #Starting Camera
 picam2 = Picamera2()
 
+
 config =picam2.create_preview_configuration(
+    transform=Transform(hflip=True, vflip=True),
     main={"size": (320, 240), "format": "YUV420"}
 )
-
 picam2.configure(config)
+
 picam2.set_controls({"FrameDurationLimits": (16666, 16666)}) #60 Fps
 picam2.start()
 
