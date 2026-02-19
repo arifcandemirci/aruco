@@ -13,14 +13,14 @@ detector = cv2.QRCodeDetector()
 picam2 = Picamera2()
 
 config =picam2.create_preview_configuration(
-    main={"size": (320, 240), "format": "YUV420"}
+    main={"size": (320, 240), "format": "YUV422"}
 )
 
 picam2.configure(config)
 picam2.set_controls({"FrameDurationLimits": (16666, 16666)}) #60 Fps
 picam2.start()
 
-cv2.namedWindow("MultiQR Pose Est.", cv2.WINDOW_NORMAL)
+#cv2.namedWindow("MultiQR Pose Est.", cv2.WINDOW_NORMAL)
 cv2.resizeWindow("MultiQR Pose Est.", 320, 240)
 
 print("[INFO] Live QR Code detection + pose started")
