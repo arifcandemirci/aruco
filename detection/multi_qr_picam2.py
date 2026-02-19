@@ -32,7 +32,7 @@ try:
     while True:
         frame_main = picam2.capture_array("main")
         frame_lores = picam2.capture_array("lores")
-        retval, decoded_info, points, _ = detector.detectAndDecodeMulti(frame_lores)
+        retval, decoded_info, points, _ = detector.detectAndDecodeMulti(frame_main)
 
         if retval is True:
             
@@ -43,12 +43,12 @@ try:
 
                 for j in range(4):
                      
-                     cv2.line(frame_main,
+                     cv2.line(frame_lores,
                               tuple(pts[j]),
                               tuple(pts[(j+1) % 4]),
                               (255, 0, 0), 2)
                      
-                cv2.putText(frame_main,
+                cv2.putText(frame_lores,
                             data,
                             tuple(pts[0]),
                             cv2.FONT_HERSHEY_COMPLEX,
