@@ -63,8 +63,8 @@ try:
                             1,
                             (255, 255, 120),
                             2)
-                
-                print ("Data Found: ", data)
+                if data is not None:
+                    print ("Data Found: ", data)
         fps_frame_count += 1
         now = time.perf_counter()
         elapsed = now - fps_time
