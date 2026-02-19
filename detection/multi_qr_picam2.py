@@ -28,9 +28,9 @@ print("[INFO] Press 'q' to quit")
 
 try:
     while True:
-        frame_yuv = picam2.capture_array()
+        frame = picam2.capture_array()
 
-        retval, decoded_info, points, _ = detector.detectAndDecodeMulti(frame_yuv)
+        retval, decoded_info, points, _ = detector.detectAndDecodeMulti(frame)
 
         if retval is True:
             
@@ -41,12 +41,12 @@ try:
 
                 for j in range(4):
                      
-                     cv2.line(img,
+                     cv2.line(frame,
                               tuple(pts[j]),
                               tuple(pts[(j+1) % 4]),
                               (255, 0, 0), 2)
                      
-                cv2.putText(img,
+                cv2.putText(frame,
                             data,
                             tuple(pts[0]),
                             cv2.FONT_HERSHEY_COMPLEX,
