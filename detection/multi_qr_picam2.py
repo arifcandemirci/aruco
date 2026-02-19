@@ -21,7 +21,7 @@ picam2.set_controls({"FrameDurationLimits": (16666, 16666)}) #60 Fps
 picam2.start()
 
 #cv2.namedWindow("MultiQR Pose Est.", cv2.WINDOW_NORMAL)
-cv2.resizeWindow("MultiQR Pose Est.", 320, 240)
+#cv2.resizeWindow("MultiQR Pose Est.", 320, 240)
 
 print("[INFO] Live QR Code detection + pose started")
 print("[INFO] Press 'q' to quit")
