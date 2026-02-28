@@ -11,7 +11,7 @@ import numpy as np
 from picamera2 import Picamera2
 import time
 import math
-from pupil_apriltags import Detector
+from dt_apriltags import Detector
 
 # ─── Calibration ─────────────────────────────────────────────────────────────
 camera_matrix = np.load("../../calibration/calibration_matrix.npy")
