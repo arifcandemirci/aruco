@@ -118,7 +118,8 @@ int main() {
         requests.push_back(std::move(request));
     }
 
-    camera->requestCompleted.connect([&](Request *request) {
+    // Some libcamera versions require a context object for Signal::connect
+    camera->requestCompleted.connect(camera.get(), [&](Request *request) {
         if (request->status() == Request::RequestCancelled) return;
 
         FrameBuffer *mainFb = request->buffers().at(mainStream);
@@ -156,7 +157,8 @@ int main() {
 
     // Set 30 FPS via FrameDurationLimits (matches picam2.set_controls)
     ControlList controls;
-    controls.set(controls::FrameDurationLimits, Span<const int64_t>({33333, 33333}));
+    int64_t duration[2] = { 33333, 33333 };
+    controls.set(controls::FrameDurationLimits, Span<const int64_t, 2>(duration));
     camera->start(&controls);
 
     for (auto &request : requests) camera->queueRequest(request.get());
