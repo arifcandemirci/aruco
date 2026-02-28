@@ -29,11 +29,10 @@ TAG_SIZE       = 0.020          # marker side length in metres (2 cm)
 detector = Detector(
     families=TAG_FAMILY,
     nthreads=2,
-    quad_decimate=2.0,          # 2.0 = yarım çözünürlükte işle → daha hızlı, RPi dostu
+    quad_decimate=2.0,    # 2.0 = yarım çözünürlükte işle → daha hızlı, RPi dostu
     quad_sigma=0.0,
     refine_edges=1,
     decode_sharpening=0.25,
-    max_hamming=1,              # varsayılan 2'yi düşür → hamming tablosu küçülür, bellek hatası gider
 )
 
 # ─── Camera ───────────────────────────────────────────────────────────────────
