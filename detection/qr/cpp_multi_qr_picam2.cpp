@@ -155,11 +155,7 @@ int main() {
         camera->queueRequest(request);
     });
 
-    // Set 60 FPS via FrameDurationLimits (matches picam2.set_controls)
-    ControlList controls;
-    int64_t duration[2] = { 16666, 16666 };
-    controls.set(controls::FrameDurationLimits, Span<const int64_t, 2>(duration));
-    camera->start(&controls);
+    camera->start();
 
     for (auto &request : requests) camera->queueRequest(request.get());
 
