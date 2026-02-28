@@ -21,6 +21,7 @@
 
 using namespace libcamera;
 
+// Helper to track FPS
 struct FpsCounter {
     double fps = 0.0;
     int cnt = 0;
@@ -40,275 +41,184 @@ struct FpsCounter {
     }
 };
 
-static cv::Mat yuv420_to_bgr(const uint8_t *yuv, int w, int h) {
-    // I420 (YUV420p) -> BGR
-    cv::Mat yuvImg(h + h / 2, w, CV_8UC1, const_cast<uint8_t*>(yuv));
-    cv::Mat bgr;
-    cv::cvtColor(yuvImg, bgr, cv::COLOR_YUV2BGR_I420);
-    return bgr;
-}
+// Represents a mapped buffer
+struct MappedBuffer {
+    void *memory;
+    size_t size;
 
-static cv::Mat y_plane_as_gray_from_yuv420(const uint8_t *yuv, int w, int h) {
-    // Y plane first w*h bytes
-    cv::Mat gray(h, w, CV_8UC1, const_cast<uint8_t*>(yuv));
-    return gray.clone(); // copy out (buffer reuse olacağı için)
-}
+    MappedBuffer(const FrameBuffer::Plane &plane) {
+        size = plane.length;
+        memory = mmap(nullptr, size, PROT_READ, MAP_SHARED, plane.fd.get(), 0);
+    }
 
-struct DualStreamState {
-    // main (BGR) ve lores (gray) frame’leri senkron tut
-    cv::Mat main_bgr;
+    ~MappedBuffer() {
+        if (memory != MAP_FAILED)
+            munmap(memory, size);
+    }
+
+    bool isValid() const { return memory != MAP_FAILED; }
+};
+
+struct AppState {
+    cv::Mat main_frame;
     cv::Mat lores_gray;
-    bool got_main = false;
-    bool got_lores = false;
-
     std::mutex mtx;
     std::condition_variable cv;
+    bool fresh = false;
     std::atomic<bool> running{true};
 };
 
-static void *mmap_plane(const FrameBuffer::Plane &plane) {
-    int fd = plane.fd.get();
-    size_t length = plane.length;
-    void *mem = mmap(nullptr, length, PROT_READ, MAP_SHARED, fd, 0);
-    if (mem == MAP_FAILED) return nullptr;
-    return mem;
-}
-
-static void munmap_plane(void *mem, const FrameBuffer::Plane &plane) {
-    if (!mem) return;
-    munmap(mem, plane.length);
-}
-
 int main() {
-    // -------- libcamera setup --------
     std::unique_ptr<CameraManager> cm = std::make_unique<CameraManager>();
-    if (cm->start()) {
-        std::cerr << "CameraManager start failed\n";
-        return 1;
-    }
+    if (cm->start()) return 1;
+
     if (cm->cameras().empty()) {
-        std::cerr << "No camera found\n";
+        std::cerr << "No cameras found" << std::endl;
         return 1;
     }
 
-    std::shared_ptr<Camera> cam = cm->cameras()[0];
-    if (cam->acquire()) {
-        std::cerr << "Camera acquire failed\n";
-        return 1;
-    }
+    std::shared_ptr<Camera> camera = cm->cameras()[0];
+    camera->acquire();
 
-    // 2 stream: main + lores (Viewfinder + StillCapture yerine; role’lar değişebilir)
-    std::unique_ptr<CameraConfiguration> config =
-        cam->generateConfiguration({StreamRole::Viewfinder, StreamRole::Viewfinder});
-
-    if (!config || config->size() < 2) {
-        std::cerr << "Failed to generate dual stream config\n";
-        return 1;
-    }
-
-    // main: 320x240 RGB/BGR için (biz YUV420 alıp BGR’e çeviriyoruz; pratik)
+    std::unique_ptr<CameraConfiguration> config = camera->generateConfiguration({ StreamRole::Viewfinder, StreamRole::Viewfinder });
+    
+    // Main stream for display (XRGB8888 is widely supported and easy to convert to BGR)
     StreamConfiguration &mainCfg = config->at(0);
     mainCfg.size.width = 320;
     mainCfg.size.height = 240;
-    mainCfg.pixelFormat = formats::YUV420; // daha uyumlu; BGR’e çevireceğiz
+    mainCfg.pixelFormat = formats::XRGB8888;
 
-    // lores: 320x240 YUV420 (analiz)
+    // Lores stream for analysis (YUV420 to get Greyscale Y plane)
     StreamConfiguration &loresCfg = config->at(1);
     loresCfg.size.width = 320;
     loresCfg.size.height = 240;
     loresCfg.pixelFormat = formats::YUV420;
 
-    if (config->validate() == CameraConfiguration::Invalid) {
-        std::cerr << "Config invalid\n";
-        return 1;
-    }
-    if (cam->configure(config.get())) {
-        std::cerr << "Camera configure failed\n";
-        return 1;
+    config->validate();
+    camera->configure(config.get());
+
+    FrameBufferAllocator allocator(camera);
+    for (StreamConfiguration &cfg : *config) {
+        allocator.allocate(cfg.stream());
     }
 
     Stream *mainStream = mainCfg.stream();
     Stream *loresStream = loresCfg.stream();
 
-    FrameBufferAllocator allocator(cam);
-    if (allocator.allocate(mainStream) < 0 || allocator.allocate(loresStream) < 0) {
-        std::cerr << "Allocator failed\n";
-        return 1;
-    }
-
-    // 30 FPS hedefi için frame duration (microseconds)
-    // 30 fps => 33333 us. Python’daki 8888 us aslında ~112 fps.
-    // Yine de “sabit fps” istiyorsan 33333 yaz.
-    ControlList controls;
-    controls.set(controls::FrameDurationLimits, Span<const int64_t>({33333, 33333}));
-
-    DualStreamState state;
-
-    // Requests oluştur (main+lores buffer eklenmiş)
+    AppState state;
     std::vector<std::unique_ptr<Request>> requests;
-    const auto &mainBufs = allocator.buffers(mainStream);
-    const auto &loresBufs = allocator.buffers(loresStream);
-    size_t n = std::min(mainBufs.size(), loresBufs.size());
-    if (n == 0) {
-        std::cerr << "No buffers\n";
-        return 1;
+
+    const std::vector<std::unique_ptr<FrameBuffer>> &mainBuffers = allocator.buffers(mainStream);
+    const std::vector<std::unique_ptr<FrameBuffer>> &loresBuffers = allocator.buffers(loresStream);
+
+    for (unsigned int i = 0; i < mainBuffers.size(); ++i) {
+        std::unique_ptr<Request> request = camera->createRequest();
+        request->addBuffer(mainStream, mainBuffers[i].get());
+        request->addBuffer(loresStream, loresBuffers[i].get());
+        requests.push_back(std::move(request));
     }
 
-    for (size_t i = 0; i < n; i++) {
-        std::unique_ptr<Request> req = cam->createRequest();
-        if (!req) {
-            std::cerr << "createRequest failed\n";
-            return 1;
-        }
+    camera->requestCompleted.connect([&](Request *request) {
+        if (request->status() == Request::RequestCancelled) return;
 
-        req->controls() = controls;
+        FrameBuffer *mainFb = request->buffers().at(mainStream);
+        FrameBuffer *loresFb = request->buffers().at(loresStream);
 
-        if (req->addBuffer(mainStream, mainBufs[i].get()) < 0 ||
-            req->addBuffer(loresStream, loresBufs[i].get()) < 0) {
-            std::cerr << "addBuffer failed\n";
-            return 1;
-        }
-        requests.push_back(std::move(req));
-    }
+        // Map main buffer (XRGB8888)
+        MappedBuffer mainMap(mainFb->planes()[0]);
+        // Map lores buffer (YUV420, we only need the first plane which is Y / Gray)
+        MappedBuffer loresMap(loresFb->planes()[0]);
 
-    // Callback: main+lores hazır olunca state’e koy
-    cam->requestCompleted.connect([&](Request *req) {
-        if (req->status() == Request::RequestCancelled) return;
-
-        auto &bufMap = req->buffers();
-
-        auto itMain = bufMap.find(mainStream);
-        auto itLores = bufMap.find(loresStream);
-        if (itMain == bufMap.end() || itLores == bufMap.end()) {
-            req->reuse(Request::ReuseBuffers);
-            cam->queueRequest(req);
-            return;
-        }
-
-        FrameBuffer *fbMain = itMain->second;
-        FrameBuffer *fbLores = itLores->second;
-
-        // --- MAIN ---
-        const auto &pMain = fbMain->planes()[0];
-        void *memMain = mmap_plane(pMain);
-        if (memMain) {
-            cv::Mat bgr = yuv420_to_bgr(
-                static_cast<uint8_t*>(memMain),
-                mainCfg.size.width, mainCfg.size.height
-            );
-            munmap_plane(memMain, pMain);
-
-            // flip (hflip + vflip)
+        if (mainMap.isValid() && loresMap.isValid()) {
+            cv::Mat xrgb(240, 320, CV_8UC4, mainMap.memory);
+            cv::Mat bgr;
+            cv::cvtColor(xrgb, bgr, cv::COLOR_BGRA2BGR); // XRGB is effectively BGRA in OpenCV terms usually
+            
+            // Apply flips as in Python: transform=Transform(hflip=True, vflip=True)
             cv::flip(bgr, bgr, -1);
 
-            std::lock_guard<std::mutex> lk(state.mtx);
-            state.main_bgr = bgr;
-            state.got_main = true;
-        }
+            cv::Mat gray(240, 320, CV_8UC1, loresMap.memory);
+            cv::Mat gray_clone = gray.clone();
+            cv::flip(gray_clone, gray_clone, -1);
 
-        // --- LORES (Y plane as gray) ---
-        const auto &pLores = fbLores->planes()[0];
-        void *memLores = mmap_plane(pLores);
-        if (memLores) {
-            cv::Mat gray = y_plane_as_gray_from_yuv420(
-                static_cast<uint8_t*>(memLores),
-                loresCfg.size.width, loresCfg.size.height
-            );
-            munmap_plane(memLores, pLores);
-
-            // flip aynı olsun
-            cv::flip(gray, gray, -1);
-
-            std::lock_guard<std::mutex> lk(state.mtx);
-            state.lores_gray = gray;
-            state.got_lores = true;
-        }
-
-        {
-            std::lock_guard<std::mutex> lk(state.mtx);
-            if (state.got_main && state.got_lores) {
-                state.cv.notify_one();
+            {
+                std::lock_guard<std::mutex> lock(state.mtx);
+                state.main_frame = bgr.clone();
+                state.lores_gray = gray_clone;
+                state.fresh = true;
             }
+            state.cv.notify_one();
         }
 
-        req->reuse(Request::ReuseBuffers);
-        cam->queueRequest(req);
+        request->reuse(Request::ReuseBuffers);
+        camera->queueRequest(request);
     });
 
-    if (cam->start()) {
-        std::cerr << "Camera start failed\n";
-        return 1;
-    }
-    for (auto &r : requests) {
-        if (cam->queueRequest(r.get()) < 0) {
-            std::cerr << "queueRequest failed\n";
-            return 1;
-        }
-    }
+    // Set 30 FPS via FrameDurationLimits (matches picam2.set_controls)
+    ControlList controls;
+    controls.set(controls::FrameDurationLimits, Span<const int64_t>({33333, 33333}));
+    camera->start(&controls);
 
-    // -------- OpenCV QR part --------
+    for (auto &request : requests) camera->queueRequest(request.get());
+
     cv::QRCodeDetector detector;
     FpsCounter fps;
 
-    cv::namedWindow("QR Code Detector", cv::WINDOW_AUTOSIZE);
-
-    while (true) {
-        cv::Mat mainFrame, gray;
+    while (state.running) {
+        cv::Mat display, gray;
         {
-            std::unique_lock<std::mutex> lk(state.mtx);
-            state.cv.wait(lk, [&] { return (state.got_main && state.got_lores) || !state.running; });
+            std::unique_lock<std::mutex> lock(state.mtx);
+            state.cv.wait(lock, [&] { return state.fresh || !state.running; });
             if (!state.running) break;
-
-            mainFrame = state.main_bgr.clone();
+            display = state.main_frame.clone();
             gray = state.lores_gray.clone();
-            state.got_main = false;
-            state.got_lores = false;
+            state.fresh = false;
         }
 
-        // detectAndDecodeMulti
         std::vector<std::string> decoded_info;
-        std::vector<std::vector<cv::Point2f>> points;
+        std::vector<cv::Point2f> points;
         bool ok = detector.detectAndDecodeMulti(gray, decoded_info, points);
 
         if (ok && !points.empty()) {
-            // scaling main vs lores (Python ile aynı)
-            double scale_x = static_cast<double>(mainFrame.cols) / gray.cols;
-            double scale_y = static_cast<double>(mainFrame.rows) / gray.rows;
+            double scale_x = (double)display.cols / gray.cols;
+            double scale_y = (double)display.rows / gray.rows;
 
             for (size_t i = 0; i < decoded_info.size(); i++) {
-                const std::string &data = decoded_info[i];
-                if (i >= points.size() || points[i].size() < 4) continue;
+                std::string data = decoded_info[i];
+                // In C++ it returns a flat vector of points or vector<vector<Point2f>>
+                // detectAndDecodeMulti(InputArray img, std::vector<std::string>& decoded_info, OutputArray points...)
+                // points is OutputArray. If it's std::vector<cv::Point2f>, it's flat.
+                
+                if (points.size() >= (i + 1) * 4) {
+                    std::vector<cv::Point> pts;
+                    for (int j = 0; j < 4; j++) {
+                        cv::Point2f p = points[i * 4 + j];
+                        pts.push_back(cv::Point(p.x * scale_x, p.y * scale_y));
+                    }
 
-                std::vector<cv::Point> pts(4);
-                for (int j = 0; j < 4; j++) {
-                    pts[j].x = static_cast<int>(points[i][j].x * scale_x);
-                    pts[j].y = static_cast<int>(points[i][j].y * scale_y);
-                }
+                    for (int j = 0; j < 4; j++) {
+                        cv::line(display, pts[j], pts[(j + 1) % 4], cv::Scalar(255, 0, 0), 2);
+                    }
 
-                for (int j = 0; j < 4; j++) {
-                    cv::line(mainFrame, pts[j], pts[(j + 1) % 4], cv::Scalar(255, 0, 0), 2);
-                }
-
-                if (!data.empty()) {
-                    cv::putText(mainFrame, data, pts[0], cv::FONT_HERSHEY_COMPLEX, 1.0,
-                                cv::Scalar(255, 255, 120), 2);
-                    std::cout << "Data Found: " << data << std::endl;
+                    if (!data.empty()) {
+                        cv::putText(display, data, pts[0], cv::FONT_HERSHEY_COMPLEX, 1.0, cv::Scalar(255, 255, 120), 2);
+                        std::cout << "Data Found: " << data << std::endl;
+                    }
                 }
             }
         }
 
-        fps.draw(mainFrame);
-        cv::imshow("QR Code Detector", mainFrame);
-
-        int key = cv::waitKey(1);
-        if (key == 'q' || key == 'Q') break;
+        fps.draw(display);
+        cv::imshow("QR Code Detector", display);
+        if (cv::waitKey(1) == 'q') state.running = false;
     }
 
-    // cleanup
     state.running = false;
-    cam->stop();
-    cam->release();
+    state.cv.notify_all();
+
+    camera->stop();
+    camera->release();
     cm->stop();
-    cv::destroyAllWindows();
+
     return 0;
 }
