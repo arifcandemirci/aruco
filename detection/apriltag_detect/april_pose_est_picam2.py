@@ -29,10 +29,11 @@ TAG_SIZE       = 0.020          # marker side length in metres (2 cm)
 detector = Detector(
     families=TAG_FAMILY,
     nthreads=2,
-    quad_decimate=1.0,          # no downscaling; increase (e.g. 2.0) to speed up
+    quad_decimate=2.0,          # 2.0 = yarım çözünürlükte işle → daha hızlı, RPi dostu
     quad_sigma=0.0,
     refine_edges=1,
     decode_sharpening=0.25,
+    max_hamming=1,              # varsayılan 2'yi düşür → hamming tablosu küçülür, bellek hatası gider
 )
 
 # ─── Camera ───────────────────────────────────────────────────────────────────
@@ -123,7 +124,7 @@ try:
                     cv2.arrowedLine(display, origin, y_tip, (0,   255, 0  ), 2, tipLength=0.3)  # Y green
                     cv2.arrowedLine(display, origin, z_tip, (255, 0,   0  ), 2, tipLength=0.3)  # Z blue
 
-                    # ── Yaw from rotation matrix ──────────────────────────────
+                    # ── Yaw from rotation matrix ─────────────────────────────
                     yaw_deg = math.degrees(math.atan2(rmat[1, 0], rmat[0, 0]))
 
                     info = (f"ID{tag_id} x={t[0]:.3f} y={t[1]:.3f} "
