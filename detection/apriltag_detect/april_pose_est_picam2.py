@@ -18,6 +18,7 @@ import time
 
 import cv2
 import numpy as np
+from libcamera import Transform
 from picamera2 import Picamera2
 
 # ─── 1. libapriltag.so yükle ──────────────────────────────────────────────────
@@ -153,6 +154,7 @@ _OBJ_PTS = np.array([
 # ─── 6. Kamera ────────────────────────────────────────────────────────────────
 picam2 = Picamera2()
 config = picam2.create_preview_configuration(
+    transform=Transform(hflip=True, vflip=True),
     main={"size": (640, 480), "format": "YUV420"}
 )
 picam2.configure(config)
